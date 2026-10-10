@@ -10,4 +10,4 @@ git commit -m "version"
 git push
 
 # Vercel app
-To be updated: https://typing-game-project-ten.vercel.app/
+https://petermanpeterchinesegame.vercel.app/

@@ -70,6 +70,55 @@
             object-fit: contain;
         }
 
+        .character-selector {
+            box-sizing: border-box;
+            width: min(360px, calc(100vw - 40px));
+            padding: 20px;
+            border: 4px solid #5c3a21;
+            border-radius: 12px;
+            background: #6ab0de;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
+            color: #fff;
+            font: inherit;
+        }
+
+        .character-selector::backdrop {
+            background: rgba(0, 0, 0, 0.6);
+        }
+
+        .character-selector h2 {
+            margin: 0 0 15px;
+            text-align: center;
+            text-shadow: 1px 1px #000;
+        }
+
+        .character-options {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 10px;
+        }
+
+        .character-option {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 6px;
+            padding: 10px;
+            border: 3px solid #996600;
+            border-radius: 8px;
+            background: #ffcc00;
+            color: #332200;
+            font: inherit;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        .character-option img {
+            width: 76px;
+            height: 76px;
+            object-fit: contain;
+        }
+
         .game-layout {
             display: flex;
             flex-direction: row;
@@ -175,29 +224,51 @@
         }
 
         .stage-btn {
-            background: var(--pipe-green);
-            border: 2px solid #004000;
+            background: #c8e8f5;
+            border: 2px solid #5b9bb8;
             padding: 8px 15px;
             border-radius: 5px;
-            color: white;
+            color: #17445a;
             font-weight: bold;
             font-family: inherit;
             cursor: pointer;
-            box-shadow: 0 4px 0 #002000;
+            box-shadow: 0 4px 0 #477d96;
             font-size: 1rem;
             transition: 0.1s;
         }
         
         .stage-btn.active, .stage-btn:hover {
-            background: #00d000;
+            background: #4b91ad;
+            border-color: #326d85;
+            color: #fff;
             transform: translateY(-2px);
-            box-shadow: 0 6px 0 #002000;
+            box-shadow: 0 6px 0 #28576b;
+        }
+
+        .pause-btn {
+            background: #d7e8ef;
+            border: 2px solid #5b9bb8;
+            padding: 8px 15px;
+            border-radius: 5px;
+            color: #17445a;
+            font: inherit;
+            font-weight: bold;
+            cursor: pointer;
+            box-shadow: 0 4px 0 #477d96;
+            transition: 0.1s;
+        }
+
+        .pause-btn.paused {
+            background: #f2c85b;
+            border-color: #9b7415;
+            color: #4d3907;
+            box-shadow: 0 4px 0 #76580d;
         }
 
         .stats {
             display: flex;
             justify-content: space-between;
-            font-size: 1.1rem;
+            font-size: 0.85rem;
             font-weight: bold;
             color: #fff;
             text-shadow: 1px 1px #000;
@@ -208,6 +279,29 @@
 
         .correct-count { color: #00ff66; }
         .incorrect-count { color: #ff6666; }
+
+        .speed-stat {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .speed-meter {
+            width: clamp(50px, 7vw, 90px);
+            height: 12px;
+            overflow: hidden;
+            border: 2px solid #fff;
+            border-radius: 5px;
+            background: #333;
+            box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.7);
+        }
+
+        .speed-meter-fill {
+            width: 0;
+            height: 100%;
+            background-color: #fff4cc;
+            transition: width 0.1s linear, background-color 0.1s linear;
+        }
 
         .typing-prompt-controls {
             display: flex;
@@ -256,22 +350,22 @@
             flex-wrap: wrap;
             justify-content: center;
             gap: 15px;
-            min-height: 200px;
+            min-height: 300px;
             align-items: center;
         }
 
         .yellow-square {
             background-color: #ffcc00;
             color: #332200;
-            font-size: 2.2rem;
+            font-size: 1.47rem;
             font-weight: bold;
             font-family: 'Microsoft JhengHei', 'PingFang TC', sans-serif;
-            width: 70px;
-            height: 70px;
+            width: 56px;
+            height: 48px;
             display: flex;
             justify-content: center;
             align-items: center;
-            border: 4px solid #996600;
+            border: 3px solid #996600;
             border-radius: 8px;
             cursor: pointer;
             box-shadow: 0 5px 0 #996600, 0 8px 10px rgba(0,0,0,0.4);
@@ -292,6 +386,7 @@
         .stall-warning {
             color: #ff3333;
             font-weight: bold;
+            font-size: 0.65rem;
             animation: blink 0.3s infinite alternate;
         }
         
@@ -320,9 +415,30 @@
 </head>
 <body>
 
-    <button class="aerial-kart-card" id="open-car-selector" type="button" aria-label="Choose a kart">
-        <img id="selected-kart-preview" src="DonkeyKong_car.jpg" alt="Aerial view of kart">
+    <button class="aerial-kart-card" id="open-car-selector" type="button" aria-label="Choose a character">
+        <img id="selected-kart-preview" src="Toad_aerial.jpeg" alt="Toad">
     </button>
+    <dialog class="character-selector" id="character-selector" aria-labelledby="character-selector-title">
+        <h2 id="character-selector-title">Choose a character</h2>
+        <div class="character-options">
+            <button class="character-option" type="button" data-image="DonkeyKong_kart_back.png" data-name="Donkey Kong">
+                <img src="DonkeyKong_kart_back.png" alt="">
+                <span>Donkey Kong</span>
+            </button>
+            <button class="character-option" type="button" data-image="Toad_car_transparent.png" data-name="Toad">
+                <img src="Toad_car_transparent.png" alt="">
+                <span>Toad</span>
+            </button>
+            <button class="character-option" type="button" data-image="Rosalina_car_transparent.png" data-name="Rosalina">
+                <img src="Rosalina_car_transparent.png" alt="">
+                <span>Rosalina</span>
+            </button>
+            <button class="character-option" type="button" data-image="Mario_car_transparent.png" data-name="Mario">
+                <img src="Mario_car_transparent.png" alt="">
+                <span>Mario</span>
+            </button>
+        </div>
+    </dialog>
 
     <h1><span class="title-letter">找</span><span class="title-letter">中</span><span class="title-letter">文</span><span class="title-letter">字</span> <span class="title-letter">G</span><span class="title-letter">a</span><span class="title-letter">m</span><span class="title-letter">e</span></h1>
 
@@ -336,7 +452,7 @@
             </div>
             
             <div id="dk-kart">
-                <img class="kart-back-view" src="DonkeyKong_kart_back.png" alt="Back view of Donkey Kong's kart">
+                <img class="kart-back-view" id="selected-character" src="DonkeyKong_kart_back.png" alt="Donkey Kong">
                 <div class="flame" id="kart-flame"></div>
             </div>
             
@@ -350,10 +466,17 @@
                 <button class="stage-btn" onclick="setStage(2)">Level 2</button>
                 <button class="stage-btn" onclick="setStage(3)">Level 3</button>
                 <button class="stage-btn" onclick="setStage(4)">Level 4</button>
+                <button class="pause-btn" id="pause-button" type="button" aria-pressed="false">Pause</button>
             </div>
 
             <div class="stats">
-                <div>⚡ 時速: <span id="speed-label">0</span> km/h <span id="status-text"></span></div>
+                <div class="speed-stat">
+                    <span>⚡ 時速:</span>
+                    <div class="speed-meter" id="speed-meter" role="progressbar" aria-label="Speed" aria-valuemin="0" aria-valuemax="175" aria-valuenow="0" aria-valuetext="0 km/h">
+                        <div class="speed-meter-fill" id="speed-meter-fill"></div>
+                    </div>
+                    <span id="status-text"></span>
+                </div>
                 <div><span class="correct-count">✅ 正確: <span id="correct-count">0</span></span>　<span class="incorrect-count">❌ 錯誤: <span id="incorrect-count">0</span></span></div>
                 <div>🎯 準確率: <span id="accuracy">100</span>%</div>
             </div>
@@ -393,6 +516,10 @@
         let correctClicks = 0;
         let incorrectClicks = 0;
         let speechInterval = null;
+        let isPaused = false;
+        let victoryTimeout = null;
+        let victoryDeadline = 0;
+        let victoryTimeRemaining = 0;
 
         // 物理變數
         let targetVelocity = 0;    
@@ -402,15 +529,18 @@
         let steeringVelocity = 0;
         let steeringDirection = 0;
         let previousFrameTime = 0;
+        let animationFrameId = null;
         let baseKartY = 30;        
         const maxVelocity = 25;    
         const maxSteeringVelocity = 240;
         const steeringAcceleration = 1100;
-        const steeringFriction = 900;
-        const steeringImpulse = 95;
+        const steeringFriction = 500;
+        const steeringImpulse = maxSteeringVelocity;
         
         // DOM Elements
-        const speedLabel = document.getElementById("speed-label");
+        // DOM Elements
+        const speedMeterFill = document.getElementById("speed-meter-fill");
+        const pauseButton = document.getElementById("pause-button");
         const statusText = document.getElementById("status-text");
         const trackScene = document.querySelector(".track-scene");
         const accuracyEl = document.getElementById("accuracy");
@@ -424,9 +554,26 @@
         const obstaclesLayer = document.getElementById("obstacles-layer");
         const congratsMsg = document.getElementById("congrats-msg");
         const wordBoard = document.getElementById("word-board");
+        const characterSelector = document.getElementById("character-selector");
+        const openCharacterSelector = document.getElementById("open-car-selector");
+        const selectedCharacter = document.getElementById("selected-character");
 
         let activeObstacles = [];
         let audioContext;
+
+        pauseButton.addEventListener("click", togglePause);
+        openCharacterSelector.addEventListener("click", () => characterSelector.showModal());
+        characterSelector.querySelectorAll(".character-option").forEach(option => {
+            option.addEventListener("click", () => {
+                selectedCharacter.src = option.dataset.image;
+                selectedCharacter.alt = option.dataset.name;
+                characterSelector.close();
+            });
+        });
+
+        characterSelector.addEventListener("click", event => {
+            if (event.target === characterSelector) characterSelector.close();
+        });
 
         function playWaterDrop() {
             audioContext ??= new (window.AudioContext || window.webkitAudioContext)();
@@ -473,11 +620,60 @@
             window.speechSynthesis.speak(msg);
         }
 
+        function speakAnnouncement(text) {
+            const msg = new SpeechSynthesisUtterance(text);
+            msg.lang = "zh-HK";
+            window.speechSynthesis.speak(msg);
+        }
+
         function startPronunciationLoop() {
             clearInterval(speechInterval);
+            if (isPaused || remainingWords.length === 0) return;
             speakTargetWord();
-            // 每3秒重複發音
-            speechInterval = setInterval(speakTargetWord, 3000);
+            // 每4秒重複發音
+            speechInterval = setInterval(speakTargetWord, 4000);
+        }
+
+        function scheduleVictoryTransition() {
+            if (isPaused || victoryTimeout !== null) return;
+            victoryDeadline = Date.now() + victoryTimeRemaining;
+            victoryTimeout = setTimeout(() => {
+                victoryTimeout = null;
+                victoryTimeRemaining = 0;
+                congratsMsg.classList.remove("show");
+                targetVelocity = 0;
+                setStage(currentStage === 4 ? 1 : currentStage + 1);
+            }, victoryTimeRemaining);
+        }
+
+        function togglePause() {
+            isPaused = !isPaused;
+            pauseButton.classList.toggle("paused", isPaused);
+            pauseButton.textContent = isPaused ? "Resume" : "Pause";
+            pauseButton.setAttribute("aria-pressed", String(isPaused));
+
+            if (isPaused) {
+                clearInterval(speechInterval);
+                speechInterval = null;
+                window.speechSynthesis.cancel();
+                if (animationFrameId !== null) {
+                    cancelAnimationFrame(animationFrameId);
+                    animationFrameId = null;
+                }
+                if (victoryTimeout !== null) {
+                    clearTimeout(victoryTimeout);
+                    victoryTimeout = null;
+                    victoryTimeRemaining = Math.max(0, victoryDeadline - Date.now());
+                }
+                speakAnnouncement("遊戲暫停");
+                return;
+            }
+
+            previousFrameTime = 0;
+            speakAnnouncement("遊戲繼續");
+            startPronunciationLoop();
+            scheduleVictoryTransition();
+            if (animationFrameId === null) animationFrameId = requestAnimationFrame(gameLoop);
         }
 
         async function loadCSV(level) {
@@ -500,6 +696,8 @@
             });
             
             clearInterval(speechInterval);
+            speechInterval = null;
+            window.speechSynthesis.cancel();
             currentLevelWords = await loadCSV(currentStage);
             
             // 打亂陣列排列
@@ -523,6 +721,7 @@
             incorrectCountEl.textContent = "0";
 
             renderWordBoard();
+            speakAnnouncement("遊戲開始");
             pickNextWord();
         }
 
@@ -550,7 +749,7 @@
         }
 
         function handleWordClick(clickedWord, squareElement) {
-            if (!targetWord) return;
+            if (isPaused || !targetWord) return;
             totalClicks++;
 
             if (clickedWord === targetWord) {
@@ -608,6 +807,7 @@
         }
 
         function clickSteering(direction, control) {
+            if (isPaused) return;
             control.classList.add("active");
             setTimeout(() => control.classList.remove("active"), 150);
             applySteeringImpulse(direction);
@@ -630,6 +830,10 @@
         }
 
         function gameLoop(timestamp) {
+            if (isPaused) {
+                animationFrameId = null;
+                return;
+            }
             const deltaSeconds = previousFrameTime ? Math.min((timestamp - previousFrameTime) / 1000, 0.05) : 0;
             previousFrameTime = timestamp;
             updateKartSteering(deltaSeconds);
@@ -661,23 +865,28 @@
                     activeObstacles.splice(i, 1);
                 }
             }
-            speedLabel.textContent = Math.round(kartVelocity * 7);
-            requestAnimationFrame(gameLoop);
+            const speed = Math.round(kartVelocity * 7);
+            speedMeter.setAttribute("aria-valuenow", Math.min(speed, maxVelocity * 7));
+            speedMeter.setAttribute("aria-valuetext", `${speed} km/h`);
+            const speedRatio = Math.min(kartVelocity / maxVelocity, 1);
+            const paleGold = [255, 244, 204];
+            const darkGold = [184, 134, 11];
+            const gold = paleGold.map((start, index) => Math.round(start + (darkGold[index] - start) * speedRatio));
+            speedMeterFill.style.width = `${speedRatio * 100}%`;
+            speedMeterFill.style.backgroundColor = `rgb(${gold.join(", ")})`;
+            animationFrameId = requestAnimationFrame(gameLoop);
         }
 
         function triggerVictory() {
             targetVelocity = maxVelocity * 1.5;
             congratsMsg.classList.add("show");
-            setTimeout(() => {
-                congratsMsg.classList.remove("show");
-                targetVelocity = 0;
-                setStage(currentStage === 4 ? 1 : currentStage + 1);
-            }, 3000);
+            victoryTimeRemaining = 3000;
+            scheduleVictoryTransition();
         }
 
         // 初始化
         setStage(1);
-        requestAnimationFrame(gameLoop);
+        animationFrameId = requestAnimationFrame(gameLoop);
     </script>
 </body>
 </html>
