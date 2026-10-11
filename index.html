@@ -182,7 +182,7 @@
         #dk-kart {
             position: absolute;
             left: 50%;
-            transform: translateX(calc(-50% + var(--kart-offset, 0px)));
+            transform: translateX(-50%);
             bottom: 30px;
             width: 145px;
             height: 155px;
@@ -219,21 +219,22 @@
         .stage-selector {
             display: flex;
             justify-content: center;
-            gap: 10px;
-            flex-wrap: wrap;
+            align-items: center;
+            gap: 6px;
+            flex-wrap: nowrap;
         }
 
         .stage-btn {
             background: #c8e8f5;
             border: 2px solid #5b9bb8;
-            padding: 8px 15px;
+            padding: 6px 8px;
             border-radius: 5px;
             color: #17445a;
             font-weight: bold;
             font-family: inherit;
             cursor: pointer;
             box-shadow: 0 4px 0 #477d96;
-            font-size: 1rem;
+            font-size: 0.85rem;
             transition: 0.1s;
         }
         
@@ -248,11 +249,12 @@
         .pause-btn {
             background: #d7e8ef;
             border: 2px solid #5b9bb8;
-            padding: 8px 15px;
+            padding: 6px 8px;
             border-radius: 5px;
             color: #17445a;
             font: inherit;
             font-weight: bold;
+            font-size: 0.85rem;
             cursor: pointer;
             box-shadow: 0 4px 0 #477d96;
             transition: 0.1s;
@@ -263,6 +265,17 @@
             border-color: #9b7415;
             color: #4d3907;
             box-shadow: 0 4px 0 #76580d;
+        }
+
+        .elapsed-time {
+            padding: 6px 8px;
+            border: 2px solid #5b9bb8;
+            border-radius: 5px;
+            background: #c8e8f5;
+            color: #17445a;
+            font-weight: bold;
+            font-size: 0.85rem;
+            white-space: nowrap;
         }
 
         .stats {
@@ -293,6 +306,7 @@
             border: 2px solid #fff;
             border-radius: 5px;
             background: #333;
+            transition: background-color 0.1s linear;
             box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.7);
         }
 
@@ -324,11 +338,13 @@
             border: 3px solid #996600;
             border-radius: 8px;
             cursor: pointer;
+            touch-action: none; /* Prevent scrolling when steering on mobile */
         }
 
         .steering-control.active {
             border: 4px solid #003b8f;
             box-shadow: 0 0 8px rgba(0, 59, 143, 0.8);
+            background: #ffc400;
         }
 
         .steering-arrow {
@@ -336,6 +352,7 @@
             width: 44px;
             height: 44px;
             object-fit: contain;
+            pointer-events: none;
         }
 
         /* 找中文字區塊 */
@@ -467,6 +484,7 @@
                 <button class="stage-btn" onclick="setStage(3)">Level 3</button>
                 <button class="stage-btn" onclick="setStage(4)">Level 4</button>
                 <button class="pause-btn" id="pause-button" type="button" aria-pressed="false">Pause</button>
+                <span class="elapsed-time" id="elapsed-time" role="timer" aria-label="Elapsed time">T: 0s</span>
             </div>
 
             <div class="stats">
@@ -477,7 +495,7 @@
                     </div>
                     <span id="status-text"></span>
                 </div>
-                <div><span class="correct-count">✅ 正確: <span id="correct-count">0</span></span>　<span class="incorrect-count">❌ 錯誤: <span id="incorrect-count">0</span></span></div>
+                <div><span class="correct-count">✅ 正確: <span id="correct-count">0</span></span> <span class="incorrect-count">❌ 錯誤: <span id="incorrect-count">0</span></span></div>
                 <div>🎯 準確率: <span id="accuracy">100</span>%</div>
             </div>
 
@@ -486,10 +504,8 @@
                     <img class="steering-arrow" src="arrow-left.png" alt="">
                 </button>
                 
-                <!-- 新增：中文字方塊顯示區 -->
-                <div id="word-board" class="word-board">
-                    <!-- 字塊會由 JavaScript 動態生成 -->
-                </div>
+                <!-- 中文字方塊顯示區 -->
+                <div id="word-board" class="word-board"></div>
 
                 <button class="steering-control" id="steer-right" type="button" aria-label="Steer right">
                     <img class="steering-arrow" src="arrow-right.png" alt="">
@@ -499,7 +515,7 @@
     </div>
 
     <script>
-        // 備用中文字庫（防止沒有架設 Server 時 CSV 讀取失敗）
+        // 備用中文字庫
         const fallbackWords = {
             1: ["我", "你", "他", "的", "是", "在", "不", "了", "有", "和"],
             2: ["天", "地", "玄", "黃", "宇", "宙", "洪", "荒", "日", "月"],
@@ -528,6 +544,10 @@
         let kartOffset = 0;
         let steeringVelocity = 0;
         let steeringDirection = 0;
+        let kartVerticalOffset = 0;
+        let kartVerticalVelocity = 0;
+        let elapsedGameSeconds = 0;
+        let isGameStarted = false;
         let previousFrameTime = 0;
         let animationFrameId = null;
         let baseKartY = 30;        
@@ -535,12 +555,14 @@
         const maxSteeringVelocity = 240;
         const steeringAcceleration = 1100;
         const steeringFriction = 500;
-        const steeringImpulse = maxSteeringVelocity;
+        const kartVerticalSpring = 64;
+        const kartVerticalDamping = 14;
         
         // DOM Elements
-        // DOM Elements
+        const speedMeter = document.getElementById("speed-meter"); // <- Fix: 加入遺漏的 DOM 宣告
         const speedMeterFill = document.getElementById("speed-meter-fill");
         const pauseButton = document.getElementById("pause-button");
+        const elapsedTime = document.getElementById("elapsed-time");
         const statusText = document.getElementById("status-text");
         const trackScene = document.querySelector(".track-scene");
         const accuracyEl = document.getElementById("accuracy");
@@ -616,7 +638,7 @@
         function speakTargetWord() {
             if (!targetWord) return;
             const msg = new SpeechSynthesisUtterance(targetWord);
-            msg.lang = 'zh-HK'; // 粵語
+            msg.lang = 'zh-HK';
             window.speechSynthesis.speak(msg);
         }
 
@@ -630,7 +652,6 @@
             clearInterval(speechInterval);
             if (isPaused || remainingWords.length === 0) return;
             speakTargetWord();
-            // 每4秒重複發音
             speechInterval = setInterval(speakTargetWord, 4000);
         }
 
@@ -669,7 +690,7 @@
                 return;
             }
 
-            previousFrameTime = 0;
+            previousFrameTime = 0; 
             speakAnnouncement("遊戲繼續");
             startPronunciationLoop();
             scheduleVictoryTransition();
@@ -681,7 +702,6 @@
                 const response = await fetch(`level${level}.csv`);
                 if (!response.ok) throw new Error("File not found");
                 const data = await response.text();
-                // 假設 CSV 是以逗號或換行分隔的單字
                 return data.split(/[\n,]/).map(w => w.trim()).filter(w => w.length > 0);
             } catch (e) {
                 console.warn(`CSV level${level}.csv 讀取失敗，使用備用字庫`);
@@ -690,6 +710,7 @@
         }
 
         async function setStage(levelNumber) {
+            isGameStarted = false;
             currentStage = levelNumber;
             document.querySelectorAll(".stage-btn").forEach((btn, idx) => {
                 btn.classList.toggle("active", idx === (levelNumber - 1));
@@ -700,15 +721,21 @@
             window.speechSynthesis.cancel();
             currentLevelWords = await loadCSV(currentStage);
             
-            // 打亂陣列排列
             currentLevelWords.sort(() => Math.random() - 0.5);
             remainingWords = [...currentLevelWords];
 
-            // 重置狀態
             kartOffset = 0;
             steeringVelocity = 0;
             steeringDirection = 0;
-            dkKart.style.setProperty("--kart-offset", "0px");
+            kartVerticalOffset = 0;
+            kartVerticalVelocity = 0;
+            elapsedGameSeconds = 0;
+            elapsedTime.textContent = "T: 0s";
+            
+            // Fix: Override CSS inline to ensure proper starting position
+            dkKart.style.transform = `translateX(-50%)`;
+            dkKart.style.bottom = `${baseKartY}px`;
+            
             totalClicks = 0;
             correctClicks = 0;
             incorrectClicks = 0;
@@ -721,6 +748,7 @@
             incorrectCountEl.textContent = "0";
 
             renderWordBoard();
+            isGameStarted = true;
             speakAnnouncement("遊戲開始");
             pickNextWord();
         }
@@ -742,7 +770,6 @@
                 triggerVictory();
                 return;
             }
-            // 從剩下的字隨機抽一個
             const randomIndex = Math.floor(Math.random() * remainingWords.length);
             targetWord = remainingWords[randomIndex];
             startPronunciationLoop();
@@ -753,44 +780,43 @@
             totalClicks++;
 
             if (clickedWord === targetWord) {
-                // 正確
                 playSound(true);
                 correctClicks++;
                 correctCountEl.textContent = correctClicks;
                 
-                // 加速賽車
-                targetVelocity += 15; // 點擊成功給予較大速度補償
+                targetVelocity += 15; 
                 if (targetVelocity > maxVelocity) targetVelocity = maxVelocity;
+                
+                // Fix: 答對時給予向上的明顯垂直位移與速度
+                kartVerticalVelocity = 600;
+                kartVerticalOffset += 30; 
+                
                 statusText.innerHTML = "";
                 flameEffect.style.opacity = (targetVelocity / maxVelocity);
 
-                // 從剩餘清單移除並隱藏方塊
                 remainingWords = remainingWords.filter(w => w !== targetWord);
                 squareElement.classList.add("hidden");
 
                 pickNextWord();
             } else {
-                // 錯誤
                 playSound(false);
                 incorrectClicks++;
                 incorrectCountEl.textContent = incorrectClicks;
                 
-                // 減速懲罰
+                // Fix: 答錯時給予向下的明顯垂直位移與速度
+                kartVerticalVelocity = -600;
+                kartVerticalOffset -= 30;
+                
                 targetVelocity *= 0.25; 
                 flameEffect.style.opacity = "0";
                 statusText.innerHTML = `<span class="stall-warning">🛑 答錯減速!</span>`;
             }
 
-            // 更新準確率
             const acc = Math.round((correctClicks / totalClicks) * 100);
             accuracyEl.textContent = isNaN(acc) ? 100 : acc;
         }
 
-        // 賽車轉向邏輯
-        function applySteeringImpulse(direction) {
-            steeringVelocity = Math.max(-maxSteeringVelocity, Math.min(maxSteeringVelocity, steeringVelocity + direction * steeringImpulse));
-        }
-
+        // 賽車轉向邏輯 (改為持續按壓轉向)
         function updateKartSteering(deltaSeconds) {
             if (steeringDirection) {
                 steeringVelocity = Math.max(-maxSteeringVelocity, Math.min(maxSteeringVelocity, steeringVelocity + steeringDirection * steeringAcceleration * deltaSeconds));
@@ -800,21 +826,33 @@
             }
             const maxOffset = Math.max(0, (trackScene.clientWidth - dkKart.offsetWidth) / 2 - 8);
             kartOffset = Math.max(-maxOffset, Math.min(maxOffset, kartOffset + steeringVelocity * deltaSeconds));
-            if ((kartOffset === -maxOffset && steeringVelocity < 0) || (kartOffset === maxOffset && steeringVelocity > 0)) {
-                steeringVelocity = 0;
-            }
-            dkKart.style.setProperty("--kart-offset", `${kartOffset}px`);
+            
+            // Fix: 直接寫入 style.transform 確保位移強制生效
+            dkKart.style.transform = `translateX(calc(-50% + ${kartOffset}px))`;
         }
 
-        function clickSteering(direction, control) {
+        function startSteering(direction, control) {
             if (isPaused) return;
             control.classList.add("active");
-            setTimeout(() => control.classList.remove("active"), 150);
-            applySteeringImpulse(direction);
+            steeringDirection = direction;
         }
 
-        steerLeft.addEventListener("click", () => clickSteering(-1, steerLeft));
-        steerRight.addEventListener("click", () => clickSteering(1, steerRight));
+        function stopSteering(control) {
+            control.classList.remove("active");
+            steeringDirection = 0;
+        }
+
+        // Fix: 將轉向綁定至 pointer 確保按住時產生平滑且持續的橫向位移
+        steerLeft.addEventListener("pointerdown", (e) => { e.preventDefault(); startSteering(-1, steerLeft); });
+        steerLeft.addEventListener("pointerup", (e) => { e.preventDefault(); stopSteering(steerLeft); });
+        steerLeft.addEventListener("pointerleave", (e) => stopSteering(steerLeft));
+
+        steerRight.addEventListener("pointerdown", (e) => { e.preventDefault(); startSteering(1, steerRight); });
+        steerRight.addEventListener("pointerup", (e) => { e.preventDefault(); stopSteering(steerRight); });
+        steerRight.addEventListener("pointerleave", (e) => stopSteering(steerRight));
+        
+        steerLeft.addEventListener("contextmenu", e => e.preventDefault());
+        steerRight.addEventListener("contextmenu", e => e.preventDefault());
 
         function spawnObstacle() {
             const emojis = ["🍄", "🐢", "🍌", "🪨", "🪙"];
@@ -834,11 +872,26 @@
                 animationFrameId = null;
                 return;
             }
-            const deltaSeconds = previousFrameTime ? Math.min((timestamp - previousFrameTime) / 1000, 0.05) : 0;
+            const rawDeltaSeconds = previousFrameTime ? (timestamp - previousFrameTime) / 1000 : 0;
+            const deltaSeconds = Math.min(rawDeltaSeconds, 0.05);
             previousFrameTime = timestamp;
+            
+            if (isGameStarted) elapsedGameSeconds += rawDeltaSeconds;
+            const elapsedWholeSeconds = Math.floor(elapsedGameSeconds);
+            if (elapsedTime.textContent !== `T: ${elapsedWholeSeconds}s`) {
+                elapsedTime.textContent = `T: ${elapsedWholeSeconds}s`;
+            }
+            
             updateKartSteering(deltaSeconds);
 
-            targetVelocity -= 0.08; // 自然減速稍微放緩，因為點擊頻率比打字低
+            kartVerticalVelocity += (-kartVerticalSpring * kartVerticalOffset - kartVerticalDamping * kartVerticalVelocity) * deltaSeconds;
+            kartVerticalOffset += kartVerticalVelocity * deltaSeconds;
+            if (Math.abs(kartVerticalOffset) < 0.1 && Math.abs(kartVerticalVelocity) < 0.1) {
+                kartVerticalOffset = 0;
+                kartVerticalVelocity = 0;
+            }
+
+            targetVelocity -= 0.08; 
             if (targetVelocity < 0) targetVelocity = 0;
 
             kartVelocity += (targetVelocity - kartVelocity) * 0.08; 
@@ -846,13 +899,13 @@
             if (kartVelocity > 0.1) {
                 roadOffset += kartVelocity;
                 roadLines.style.transform = `translateX(-50%) translateY(${roadOffset % 160}px)`;
-                let visualY = baseKartY + (kartVelocity * 1.5);
+                let visualY = baseKartY + (kartVelocity * 1.5) + kartVerticalOffset;
                 dkKart.style.bottom = `${visualY}px`;
                 flameEffect.style.opacity = kartVelocity / maxVelocity;
 
                 if (Math.random() < 0.03 && kartVelocity > 8) spawnObstacle();
             } else {
-                dkKart.style.bottom = `${baseKartY}px`;
+                dkKart.style.bottom = `${baseKartY + kartVerticalOffset}px`;
                 flameEffect.style.opacity = "0";
             }
 
@@ -865,15 +918,26 @@
                     activeObstacles.splice(i, 1);
                 }
             }
+            
             const speed = Math.round(kartVelocity * 7);
             speedMeter.setAttribute("aria-valuenow", Math.min(speed, maxVelocity * 7));
             speedMeter.setAttribute("aria-valuetext", `${speed} km/h`);
+            
+            // Fix: 動態計算並套用顏色至整個外框 (基於速度與垂直位移)
             const speedRatio = Math.min(kartVelocity / maxVelocity, 1);
-            const paleGold = [255, 244, 204];
+            const verticalDisplacementRatio = Math.min(Math.abs(kartVerticalOffset) / 60, 1);
+            const meterColorRatio = Math.max(speedRatio, verticalDisplacementRatio);
+            
+            const meterBaseColor = [51, 51, 51];
             const darkGold = [184, 134, 11];
+            const meterBackground = meterBaseColor.map((start, index) => Math.round(start + (darkGold[index] - start) * meterColorRatio));
+            speedMeter.style.backgroundColor = `rgb(${meterBackground.join(", ")})`;
+            
+            const paleGold = [255, 244, 204];
             const gold = paleGold.map((start, index) => Math.round(start + (darkGold[index] - start) * speedRatio));
             speedMeterFill.style.width = `${speedRatio * 100}%`;
             speedMeterFill.style.backgroundColor = `rgb(${gold.join(", ")})`;
+            
             animationFrameId = requestAnimationFrame(gameLoop);
         }
 
@@ -884,7 +948,6 @@
             scheduleVictoryTransition();
         }
 
-        // 初始化
         setStage(1);
         animationFrameId = requestAnimationFrame(gameLoop);
     </script>
